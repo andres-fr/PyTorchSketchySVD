@@ -7,7 +7,7 @@
 
 import torch
 import torch_dct as dct
-from .utils import randperm, rademacher, NoFlatError
+from .utils import randperm, rademacher, NoFlatError, BadShapeError
 
 
 # ##############################################################################
@@ -101,7 +101,8 @@ class SSRFT:
           so that ``l2norm(x)`` approximates ``l2norm(Ax)``.
         """
         h, w = shape
-        assert h <= w, "Height > width not supported!"
+        if h > w:
+            raise BadShapeError("Height > width not supported!")
         #
         self.shape = shape
         self.seed = seed
@@ -110,21 +111,27 @@ class SSRFT:
     def __repr__(self):
         """ """
         clsname = self.__class__.__name__
-        s = f"<{clsname}({self.shape[0]}x{self.shape[1]})>"
+        s = f"<{clsname}({self.shape[0]}x{self.shape[1]}), seed={self.seed}>"
         return s
 
     def check_input(self, x, adjoint):
         """ """
-        assert len(x.shape) in {1, 2}, "Only vector or matrix input supported"
-        #
-        if adjoint:
-            assert (
-                x.shape[1] == self.shape[0]
-            ), f"Mismatching shapes! {x.shape} <--> {self.shape}"
-        else:
-            assert (
-                x.shape[0] == self.shape[1]
-            ), f"Mismatching shapes! {self.shape} <--> {x.shape}"
+        try:
+            assert len(x.shape) in {
+                1,
+                2,
+            }, "Only vector or matrix input supported"
+            #
+            if adjoint:
+                assert (
+                    x.shape[-1] == self.shape[0]
+                ), f"Mismatching shapes! {x.shape} <--> {self.shape}"
+            else:
+                assert (
+                    x.shape[0] == self.shape[1]
+                ), f"Mismatching shapes! {self.shape} <--> {x.shape}"
+        except AssertionError as ae:
+            raise BadShapeError from ae
 
     # operator interfaces
     def __matmul__(self, x):
