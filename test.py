@@ -23,11 +23,17 @@ SEED = 0b1110101001010101011
 IN, OUT, DTYPE = 100, 100, torch.float64
 
 ssrft = SSRFT((OUT, IN), seed=SEED)
-aa = torch.linspace(0, 10, IN, dtype=DTYPE).to(DEVICE)
-bb = ssrft @ aa
-cc = bb @ ssrft
+# aa = torch.linspace(0, 10, IN, dtype=DTYPE).to(DEVICE)
+# bb = ssrft @ aa
+# cc = bb @ ssrft
 
-torch.allclose(aa, cc)
+# torch.allclose(aa, cc)
+
+
+kk = torch.randn((100, 13), dtype=DTYPE).to(DEVICE)
+qq = ssrft @ kk
+
+zz = (qq.T @ ssrft).T
 
 
 # t=aa.cpu(); plt.clf(); plt.plot(t); plt.show()

@@ -7,7 +7,7 @@
 
 import torch
 import torch_dct as dct
-from .utils import randperm, rademacher
+from .utils import randperm, rademacher, NoFlatError
 
 
 # ##############################################################################
@@ -20,7 +20,8 @@ def ssrft(x, out_dims, seed=0b1110101001010101011, dct_norm="ortho"):
     where R is an index-picker, F is a DCT, and PI, PI' are independent
     permutations
     """
-    assert len(x.shape) == 1, "Only flat tensors supported!"
+    if len(x.shape) != 1:
+        raise NoFlatError("Only flat tensors supported!")
     x_len = len(x)
     assert out_dims <= x_len, "Projection to larger dimensions not supported!"
     seeds = [seed + i for i in range(5)]
@@ -58,8 +59,8 @@ def ssrft_adjoint(x, out_dims, seed=0b1110101001010101011, dct_norm="ortho"):
     truncated identity, so we embed the entries picked by R into the
     corresponding indices, and leave the rest as zeros.
     """
-
-    assert len(x.shape) == 1, "Only flat tensors supported!"
+    if len(x.shape) != 1:
+        raise NoFlatError("Only flat tensors supported!")
     x_len = len(x)
     assert (
         out_dims >= x_len
@@ -112,29 +113,57 @@ class SSRFT:
         s = f"<{clsname}({self.shape[0]}x{self.shape[1]})>"
         return s
 
+    def check_input(self, x, adjoint):
+        """ """
+        assert len(x.shape) in {1, 2}, "Only vector or matrix input supported"
+        #
+        if adjoint:
+            assert (
+                x.shape[1] == self.shape[0]
+            ), f"Mismatching shapes! {x.shape} <--> {self.shape}"
+        else:
+            assert (
+                x.shape[0] == self.shape[1]
+            ), f"Mismatching shapes! {self.shape} <--> {x.shape}"
+
     # operator interfaces
     def __matmul__(self, x):
         """
         Defining forward matrix-vector operation ``self @ x``.
+        :param x: A tensor of shape ``(w,)`` or ``(w, k)``.
         """
-        assert (
-            x.numel() == self.shape[1]
-        ), f"Mismatching shapes! {self.shape} <--> {x.numel()}"
-        x = ssrft(x, self.shape[0], seed=self.seed, dct_norm="ortho")
-        return x
+        self.check_input(x, adjoint=False)
+        try:
+            return ssrft(x, self.shape[0], seed=self.seed, dct_norm="ortho")
+        except NoFlatError:
+            result = torch.zeros((self.shape[0], x.shape[1]), dtype=x.dtype).to(
+                x.device
+            )
+            for i in range(x.shape[1]):
+                result[:, i] = ssrft(
+                    x[:, i], self.shape[0], seed=self.seed, dct_norm="ortho"
+                )
+            return result
 
     def __rmatmul__(self, x):
-        """
-        Defining backward vector-matrix operation ``x @ self``.
-        """
-        assert (
-            x.numel() == self.shape[0]
-        ), f"Mismatching shapes! {x.numel()} <--> {self.shape}"
-        x = ssrft_adjoint(x, self.shape[1], seed=self.seed, dct_norm="ortho")
-        return x
+        """ """
+        self.check_input(x, adjoint=True)
+        try:
+            return ssrft_adjoint(
+                x, self.shape[1], seed=self.seed, dct_norm="ortho"
+            )
+        except NoFlatError:
+            result = torch.zeros((x.shape[0], self.shape[1]), dtype=x.dtype).to(
+                x.device
+            )
+            for i in range(x.shape[0]):
+                result[i, :] = ssrft_adjoint(
+                    x[i, :], self.shape[1], seed=self.seed, dct_norm="ortho"
+                )
+            return result
 
     def __imatmul__(self, x):
         """
         Defining assignment matmul operator ``@=``.
         """
-        raise NotImplementedError("This is a matrix-free operator!")
+        raise NotImplementedError("Matmul assignment not supported!")
