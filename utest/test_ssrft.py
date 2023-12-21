@@ -9,8 +9,8 @@
 # import numpy as np
 import torch
 
-from pytorch_ssvd.dimredux import SSRFT
-from pytorch_ssvd.cg import CG
+from pyssvd.dimredux import SSRFT
+from pyssvd.cg import CG
 
 import matplotlib.pyplot as plt
 
