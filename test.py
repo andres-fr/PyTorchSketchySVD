@@ -25,18 +25,102 @@ DEVICE = "cuda"
 SEED = 12345
 HEIGHT, WIDTH = 5, 100_000
 
-aa = torch.linspace(0, 10, WIDTH).to(DEVICE)
-aa = aa[randperm(WIDTH, seed=SEED, device="cpu")]
-rademacher(aa, SEED, inplace=True)
-aa = dct.dct(aa)
-#
-aa = aa[randperm(WIDTH, seed=SEED + 1, device="cpu")]
-rademacher(aa, SEED + 1, inplace=True)
-aa = dct.dct(aa)
+# aa = torch.linspace(0, 10, WIDTH).to(DEVICE)
+# aa = aa[randperm(WIDTH, seed=SEED, device="cpu")]
+# rademacher(aa, SEED, inplace=True)
+# aa = dct.dct(aa)
+# #
+# aa = aa[randperm(WIDTH, seed=SEED + 1, device="cpu")]
+# rademacher(aa, SEED + 1, inplace=True)
+# aa = dct.dct(aa)
+
 
 # rademacher(x, seed=None, inplace=True):
 # rademacher(WIDTH, seed=None, inplace=True)
 
+
+def ssrft(t, out_dims, seed=0b1110101001010101011, dct_norm="ortho"):
+    """
+    map = R @ F @ PI @ F @ PI'
+
+    where R is an index-picker, F is a DCT, and PI, PI' are independent permutations
+
+    :param int out_dims: If smaller than
+
+    """
+    assert len(t.shape) == 1, "Only flat tensors supported!"
+    t_len = len(t)
+    assert out_dims <= t_len, "Projection to larger dimensions not supported!"
+    seeds = [seed + i for i in range(5)]
+    # first scramble: permute, rademacher, and DCT
+    perm1 = randperm(t_len, seed=seeds[0], device="cpu")
+    t, rad1 = rademacher(t[perm1], seed=seeds[1], inplace=False)
+    # del perm1, rad1
+    t = dct.dct(t, norm=dct_norm)
+    # second scramble: permute, rademacher and DCT
+    perm2 = randperm(t_len, seed=seeds[2], device="cpu")
+    t, rad2 = rademacher(t[perm2], seeds[3], inplace=False)
+    # del perm2, rad2
+    t = dct.dct(t, norm=dct_norm)
+    # extract random indices and return
+    out_idxs = randperm(t_len, seed=seeds[4], device="cpu")[:out_dims]
+    t = t[out_idxs]
+
+    print(perm1, rad1)
+    print(perm2, rad2)
+    print(out_idxs)
+    return t
+
+
+def ssrft_adjoint(t, out_dims, seed=0b1110101001010101011, dct_norm="ortho"):
+    """
+    map = R @ F @ PI @ F @ PI'
+
+    where R is an index-picker, F is a DCT, and PI, PI' are independent permutations
+
+    :param int out_dims: If smaller than
+
+    """
+
+    assert len(t.shape) == 1, "Only flat tensors supported!"
+    t_len = len(t)
+    assert (
+        out_dims >= t_len
+    ), "Backprojection into smaller dimensions not supported!"
+    #
+    seeds = [seed + i for i in range(5)]
+    result = torch.zeros(
+        out_dims,
+        dtype=t.dtype,
+    ).to(t.device)
+    # first embed signal into original indices
+    out_idxs = randperm(out_dims, seed=seeds[4], device="cpu")[:t_len]
+    result[out_idxs] = t
+    # then do the idct, followed by rademacher and inverse permutation
+    result = dct.idct(result, norm=dct_norm)
+    rademacher(result, seeds[3], inplace=True)
+    perm2_inv = randperm(out_dims, seed=seeds[2], device="cpu", inverse=True)
+    result = result[perm2_inv]
+    del perm2_inv
+    # second inverse pass
+    result = dct.idct(result, norm=dct_norm)
+    rademacher(result, seeds[1], inplace=True)
+    perm1_inv = randperm(out_dims, seed=seeds[0], device="cpu", inverse=True)
+    result = result[perm1_inv]
+    #
+    return result
+
+
+IN, OUT, DTYPE = 100, 100, torch.float64
+aa = torch.linspace(0, 10, IN, dtype=DTYPE).to(DEVICE)
+oo = ssrft(aa, OUT)
+
+bb = ssrft_adjoint(oo, IN)
+
+print(aa)
+print(oo)
+
+# t=aa.cpu(); plt.clf(); plt.plot(t); plt.show()
 breakpoint()
 
 
@@ -48,25 +132,7 @@ class SSRFT:
     TODO: DCT MUST PRESERVE SCALE, AS PERM AND RADEMACHER. HOW?
 
 
-    map = R @ F @ PI @ F @ PI'
-
-    where R is an index-picker, F is a DCT, and PI, PI' are independent permutations
     """
-
-    SEED = 0b1110101001010101011
-
-    # def __init__(
-    #     self, shape, dtype=torch.float64, device="cpu", scale=1.0, seed=None
-    # ):
-    #     """ """
-    #     coords = None
-    #     perm1, perm2 = None, None
-    #     eps1, eps2 = None, None
-
-    @classmethod
-    def ssrft(cls, t, out_dims):
-        """ """
-        pass
 
     @classmethod
     def fjlt(
