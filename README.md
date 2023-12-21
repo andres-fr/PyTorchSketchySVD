@@ -18,6 +18,9 @@
 * https://github.com/alpyurtsever/SKETCH
 
 
+USING CG TO SOLVE PSEUDOINVERSES:
+https://math.stackexchange.com/a/4533431
+
 
 ```
 pip install torch-dct
