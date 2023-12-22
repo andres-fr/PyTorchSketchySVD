@@ -3,18 +3,22 @@
 
 ### TODO:
 
+- [ ] Generate synthetic test matrices
+
+
 - [ ] Fast random GPU-compatible projections
   - [x] scrambled subsampled randomized Fourier transform (SSRFT): recommended, outperforms Gaussian
-  - [ ] Gaussian (for numerical testing)
-  - [ ] FJLT (unstable, needs float64 precision)
+  - [x] Gaussian (for numerical testing)
 - [ ] GPU-compatible, stable QR factorization  https://pytorch.org/docs/stable/generated/torch.linalg.qr.html#torch.linalg.qr
   - [ ] Optionally in-place (not default since matrix evaluations are more expensive than memory)
 - [ ] Post-hoc precision estimation
 - [ ] Tests
   - [x] SSRFT
+  - [x] Gaussian
   - [ ] CG
   - [ ] QR
-
+- [ ] Maybe
+  - [ ] Pivoted QR? https://github.com/pytorch/pytorch/issues/82092
 
 ### Implementation notes:
 
