@@ -3,6 +3,7 @@
 
 ### TODO:
 
+- [ ] Change design of Gaussian and synth: just functions returning the tensor, don't reimplement matmul!
 - [ ] Generate synthetic test matrices
 
 
