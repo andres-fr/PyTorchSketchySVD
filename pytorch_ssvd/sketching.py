@@ -133,38 +133,3 @@ class SSRFT(BaseRandomMatrix):
     def rmatmul(self, x):
         """ """
         return ssrft_adjoint(x, self.shape[1], seed=self.seed, dct_norm="ortho")
-
-
-# ##############################################################################
-# # GAUSSIAN
-# ##############################################################################
-class GaussianIIDMatrix(BaseRandomMatrix):
-    """ """
-
-    def __init__(
-        self,
-        shape,
-        seed=0b1110101001010101011,
-        dtype=torch.float64,
-        device="cpu",
-        mean=0.0,
-        std=1.0,
-    ):
-        """
-        :param shape: Pair with ``(height, width)`` of this linear operator.
-        """
-        super().__init__(shape, seed)
-        self.mean = mean
-        self.std = std
-        self._weights = normal_noise(shape, mean, std, seed, dtype, device)
-        self.scale = NotImplemented
-
-    def matmul(self, x):
-        """ """
-        result = torch.matmul(self._weights, x)
-        return result
-
-    def rmatmul(self, x):
-        """ """
-        result = torch.matmul(x, self._weights)
-        return result

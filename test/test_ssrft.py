@@ -8,7 +8,7 @@
 
 import pytest
 import torch
-from pytorch_ssvd.dimredux import SSRFT
+from pytorch_ssvd.sketching import SSRFT
 from pytorch_ssvd.utils import BadShapeError
 from .fixtures import (
     torch_devices,

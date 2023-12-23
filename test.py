@@ -9,51 +9,84 @@
 # import numpy as np
 import torch
 
-from pytorch_ssvd.dimredux import SSRFT
+from pytorch_ssvd.synthmat import SynthMat
+from pytorch_ssvd.ssvd import a_priori_hyperparams
+from pytorch_ssvd.sketching import SSRFT
 from pytorch_ssvd.cg import CG
 
-from pytorch_ssvd.synthetic_matrices import (
-    LowRankNoiseMatrix,
-    PolyDecayMatrix,
-    ExpDecayMatrix,
-)
+
 import matplotlib.pyplot as plt
 
 
-#
-
-
+# ##############################################################################
+# # GLOBALS
+# ##############################################################################
 DEVICE = "cuda"
 SEED = 0b1110101001010101011
-IN, OUT, DTYPE = 100, 100, torch.float64
+IN, OUT, DTYPE = 1000, 500, torch.float64
+RANK = 10
+#
+MEMORY_BUDGET = 50_000
+OUTER_K, CORE_K = a_priori_hyperparams((OUT, IN), MEMORY_BUDGET)
 
 
-mm = LowRankNoiseMatrix((OUT, IN), rank=10, snr=1e-1, device="cuda")
-pm = PolyDecayMatrix((OUT, IN), rank=10, decay=0.5, symmetric=False)
-em = ExpDecayMatrix((OUT, IN), rank=10, decay=0.1, symmetric=True)
+# ##############################################################################
+# # MAIN ROUTINE
+# ##############################################################################
+
+# 1. create test matrix and compute its hard SVD
+# mm = SynthMat.lowrank_noise((OUT, IN), rank=10, snr=1e-1, device="cuda")
+# em = SynthMat.exp_decay((OUT, IN), rank=10, decay=0.1, symmetric=True)
+mat = SynthMat.poly_decay(
+    (OUT, IN), rank=RANK, decay=1, symmetric=False, dtype=DTYPE, device=DEVICE
+)
+U, S, Vt = torch.linalg.svd(mat, full_matrices=False)
+# plt.clf(); plt.imshow(em.cpu()); plt.show()
+# plt.clf(); plt.loglog(S.cpu()); plt.show()
 
 
-# import matplotlib.pyplot as plt
-# plt.clf(); plt.imshow(em._weights.cpu()); plt.show()
+# 2. draw random measurements and perform QR decomposition
+left_outer_ssrft = SSRFT((OUTER_K, OUT), seed=SEED)
+right_outer_ssrft = SSRFT((OUTER_K, IN), seed=SEED + 1)
+left_core_ssrft = SSRFT((CORE_K, OUT), seed=SEED + 2)
+right_core_ssrft = SSRFT((CORE_K, IN), seed=SEED + 3)
+#
+lo_measurements = (
+    torch.eye(OUTER_K, dtype=DTYPE).to(DEVICE) @ left_outer_ssrft
+) @ mat
+ro_measurements = (
+    mat @ (torch.eye(OUTER_K, dtype=DTYPE).to(DEVICE) @ right_outer_ssrft).T
+)
+core_measurements = (
+    (torch.eye(CORE_K, dtype=DTYPE).to(DEVICE) @ left_core_ssrft)
+    @ mat
+    @ (torch.eye(CORE_K, dtype=DTYPE).to(DEVICE) @ right_core_ssrft).T
+)
 
-# aa, bb, cc = torch.linalg.svd(em._weights)
-# plt.clf(); plt.loglog(bb); plt.show()
+# 3. Perform QR decompositions of outer measurements
+lo_Q = torch.linalg.qr(lo_measurements.T)[0].T
+ro_Q = torch.linalg.qr(ro_measurements)[0]
+
+
+# 4. Solve core matrix to yield initial approximation
+
+
 breakpoint()
 
 
-ssrft = SSRFT((OUT, IN), seed=SEED)
-# aa = torch.linspace(0, 10, IN, dtype=DTYPE).to(DEVICE)
-# bb = ssrft @ aa
-# cc = bb @ ssrft
+# 5. SVD of core matrix and truncated approximation
 
-# torch.allclose(aa, cc)
+"""
+a) take SVD, and grab top r pairs
+b) Multiply Q matrices by truncated SVD ones, we are done.
 
+See algorithm 4.4 in page 13
 
-kk = torch.randn((100, 13), dtype=DTYPE).to(DEVICE)
-qq = ssrft @ kk
-
-zz = (qq.T @ ssrft).T
+"""
 
 
-# t=aa.cpu(); plt.clf(); plt.plot(t); plt.show()
-breakpoint()
+# 6. A posteriori precision and rank estimation
+
+"""
+???
+"""
