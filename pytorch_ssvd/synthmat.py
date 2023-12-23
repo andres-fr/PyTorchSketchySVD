@@ -135,9 +135,7 @@ class SynthMat:
         # a few ones, followed by exp decay
         svals = torch.zeros(min_shape, dtype=dtype).to(device)
         svals[:rank] = 1
-        svals[rank:] = 10
-        #
-        svals[rank:] **= -(decay * torch.arange(1, min_shape - rank + 1))
+        svals[rank:] = 10 ** -(decay * torch.arange(1, min_shape - rank + 1))
         #
         result = cls._decay_helper(
             svals, shape, rank, decay, symmetric, seed, dtype, device

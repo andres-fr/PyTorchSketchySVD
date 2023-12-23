@@ -26,7 +26,7 @@ SEED = 0b1110101001010101011
 IN, OUT, DTYPE = 1000, 500, torch.float64
 RANK = 10
 #
-MEMORY_BUDGET = 50_000
+MEMORY_BUDGET = 100_000
 OUTER_K, CORE_K = a_priori_hyperparams((OUT, IN), MEMORY_BUDGET)
 
 
@@ -37,8 +37,11 @@ OUTER_K, CORE_K = a_priori_hyperparams((OUT, IN), MEMORY_BUDGET)
 # 1. create test matrix and compute its hard SVD
 # mm = SynthMat.lowrank_noise((OUT, IN), rank=10, snr=1e-1, device="cuda")
 # em = SynthMat.exp_decay((OUT, IN), rank=10, decay=0.1, symmetric=True)
+# mat = SynthMat.exp_decay(
+#     (OUT, IN), rank=RANK, decay=0.1, symmetric=False, dtype=DTYPE, device=DEVICE
+# )
 mat = SynthMat.poly_decay(
-    (OUT, IN), rank=RANK, decay=1, symmetric=False, dtype=DTYPE, device=DEVICE
+    (OUT, IN), rank=RANK, decay=2, symmetric=False, dtype=DTYPE, device=DEVICE
 )
 U, S, Vt = torch.linalg.svd(mat, full_matrices=False)
 # plt.clf(); plt.imshow(em.cpu()); plt.show()
@@ -69,12 +72,14 @@ ro_Q = torch.linalg.qr(ro_measurements)[0]
 
 
 # 4. Solve core matrix to yield initial approximation
-
-
-breakpoint()
-
+left_core = left_core_ssrft @ ro_Q
+right_core = right_core_ssrft @ lo_Q.T
+core = torch.linalg.lstsq(left_core, core_measurements).solution
+core = torch.linalg.lstsq(right_core, core.T).solution
 
 # 5. SVD of core matrix and truncated approximation
+core_U, core_S, core_Vt = torch.linalg.svd(core)
+# plt.clf(); plt.plot(core_S.cpu()); plt.show()
 
 """
 a) take SVD, and grab top r pairs
@@ -84,6 +89,8 @@ See algorithm 4.4 in page 13
 
 """
 
+
+breakpoint()
 
 # 6. A posteriori precision and rank estimation
 

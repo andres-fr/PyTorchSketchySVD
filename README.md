@@ -16,7 +16,7 @@
 - [ ] Put everything together to get the SSVD
 - [ ] Centering step?
 - [ ] Post-hoc precision estimation
-  - [ ] Also use to determine rank (how? see paper)
+  - [ ] Also use to determine rank (how? see paper, 6.5)
 - [ ] Tests
   - [x] SSRFT
   - [ ] Synthetic matrices (take actual SVD and compare spectra, check symmetry...)
