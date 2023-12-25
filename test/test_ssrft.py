@@ -10,9 +10,12 @@ import pytest
 import torch
 from pytorch_ssvd.sketching import SSRFT
 from pytorch_ssvd.utils import BadShapeError
+
+# f32 tolerance goes to zero for larger shapes (which is where SSVD makes
+# sense), so we only test f64. Use f32 at own risk
 from .fixtures import (
     torch_devices,
-    torch_dtypes_rtols,
+    f64_rtol,
     rng_seeds,
 )
 
@@ -47,15 +50,15 @@ def fat_shapes():
 
 
 # ##############################################################################
-# # POSITIVE TESTS
+# # TESTS
 # ##############################################################################
-def test_no_nans(torch_devices, torch_dtypes_rtols, rng_seeds, square_shapes):
+def test_no_nans(torch_devices, f64_rtol, rng_seeds, square_shapes):
     """ """
     for seed in rng_seeds:
         for h, w in square_shapes:
             ssrft = SSRFT((h, w), seed=seed)
             for device in torch_devices:
-                for dtype, rtol in torch_dtypes_rtols.items():
+                for dtype, rtol in f64_rtol.items():
                     x = torch.randn(w, dtype=dtype).to(device)
                     y = ssrft @ x
                     xx = y @ ssrft
@@ -65,9 +68,7 @@ def test_no_nans(torch_devices, torch_dtypes_rtols, rng_seeds, square_shapes):
                     assert not xx.isnan().any(), f"{ssrft, device, dtype}"
 
 
-def test_invertible(
-    torch_devices, torch_dtypes_rtols, rng_seeds, square_shapes
-):
+def test_invertible(torch_devices, f64_rtol, rng_seeds, square_shapes):
     """
     Test that, when input and output dimensionality are the same, the SSRFT
     operator is orthogonal, i.e. we can recover the input exactly via an
@@ -78,7 +79,7 @@ def test_invertible(
         for h, w in square_shapes:
             ssrft = SSRFT((h, w), seed=seed)
             for device in torch_devices:
-                for dtype, rtol in torch_dtypes_rtols.items():
+                for dtype, rtol in f64_rtol.items():
                     # matvec
                     x = torch.randn(w, dtype=dtype).to(device)
                     y = ssrft @ x
@@ -105,9 +106,7 @@ def test_invertible(
                     assert xx.shape[-1] == 2
 
 
-def test_seed_consistency(
-    torch_devices, torch_dtypes_rtols, rng_seeds, square_shapes
-):
+def test_seed_consistency(torch_devices, f64_rtol, rng_seeds, square_shapes):
     """
     Test that same seed and shape lead to same operator with same results,
     and different otherwise.
@@ -118,7 +117,7 @@ def test_seed_consistency(
             ssrft_same = SSRFT((h, w), seed=seed)
             ssrft_diff = SSRFT((h, w), seed=seed + 1)
             for device in torch_devices:
-                for dtype, rtol in torch_dtypes_rtols.items():
+                for dtype, rtol in f64_rtol.items():
                     # matvec
                     x = torch.randn(w, dtype=dtype).to(device)
                     assert ((ssrft @ x) == (ssrft_same @ x)).all()
@@ -129,9 +128,6 @@ def test_seed_consistency(
                         assert ((ssrft @ x) != (ssrft_diff @ x)).any()
 
 
-# ##############################################################################
-# # NEGATIVE TESTS
-# ##############################################################################
 def test_unsupported_tall_ssrft(rng_seeds, fat_shapes):
     """ """
     for seed in rng_seeds:
@@ -141,15 +137,13 @@ def test_unsupported_tall_ssrft(rng_seeds, fat_shapes):
                 ssrft = SSRFT((w, h), seed=seed)
 
 
-def test_input_shape_mismatch(
-    rng_seeds, fat_shapes, torch_devices, torch_dtypes_rtols
-):
+def test_input_shape_mismatch(rng_seeds, fat_shapes, torch_devices, f64_rtol):
     """ """
     for seed in rng_seeds:
         for h, w in fat_shapes:
             ssrft = SSRFT((h, w), seed=seed)
             for device in torch_devices:
-                for dtype, rtol in torch_dtypes_rtols.items():
+                for dtype, rtol in f64_rtol.items():
                     # forward matmul
                     x = torch.empty(w + 1, dtype=dtype).to(device)
                     with pytest.raises(BadShapeError):

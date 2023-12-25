@@ -11,7 +11,9 @@ import torch
 
 from pytorch_ssvd.synthmat import SynthMat
 from pytorch_ssvd.sketching import SSRFT
-from pytorch_ssvd.ssvd import a_priori_hyperparams, ssvd, truncate_core
+from pytorch_ssvd.ssvd import a_priori_hyperparams, scree
+from pytorch_ssvd.ssvd import a_posteriori_error, a_posteriori_error_bounds
+from pytorch_ssvd.ssvd import ssvd, truncate_core
 
 import matplotlib.pyplot as plt
 
@@ -62,10 +64,15 @@ mat10_recons = lo_Qt @ trunc_U @ torch.diag(trunc_S) @ trunc_Vt @ ro_Qt
 
 print(torch.dist(mat, mat_recons))
 print(torch.dist(mat10, mat10_recons))
-breakpoint()
+
 
 # 6. A posteriori precision and rank estimation
+print(a_posteriori_error_bounds(200, 0.25))
+(frob1, frob2, diff), _ = a_posteriori_error(
+    mat, mat_recons, 200, SEED, DTYPE, DEVICE
+)
+lo, hi = scree(core_S, frob1**0.5, diff**0.5)
 
-"""
-???
-"""
+# plt.clf(); plt.plot(lo.cpu()); plt.plot(hi.cpu()); plt.yscale("log"); plt.show()
+
+breakpoint()

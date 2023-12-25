@@ -23,11 +23,16 @@ def torch_devices():
 
 
 @pytest.fixture
-def torch_dtypes_rtols():
+def f64_rtol():
     """ """
-    # f32 tolerance goes to zero for larger shapes (which is where SSVD makes
-    # sense), so we only test f64. Use f32 at own risk
     result = {torch.float64: 1e-10}
+    return result
+
+
+@pytest.fixture
+def f32_rtol():
+    """ """
+    result = {torch.float32: 1e-3}
     return result
 
 
