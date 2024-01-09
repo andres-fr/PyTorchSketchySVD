@@ -18,15 +18,15 @@
   - [x] Also use to determine rank (how? see paper, 6.5)
 - [ ] Tests
   - [x] SSRFT
-  - [ ] Synthetic matrices (take actual SVD and compare spectra, check symmetry...)
-  - [ ] QR (check different -large shapes, Q should be orthogonal)
-  - [ ] Test SVD (hard correctness) for family of matrices
+  - [x] Synthetic matrices (take actual SVD and compare spectra, check symmetry...)
+  - [x] QR (check different -large shapes, Q should be orthogonal)
+  - [x] Test SVD (hard correctness) for exp+poly family of matrices
   - [ ] Test post-hoc analysis: close enough estimate, correctness of lower/upper scree bounds
 - [ ] Implement and test symmetric SSVD (needs to be PSD!!!)
 - [ ] Add CI, autodocs, codecov, readme, packager
 
 
-- [ ] Maybe
+### Maybe TODO
 
   - [ ] Centering matrix?
   - [ ] Pivoted QR? https://github.com/pytorch/pytorch/issues/82092

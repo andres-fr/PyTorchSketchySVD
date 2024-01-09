@@ -15,7 +15,6 @@ from pytorch_ssvd.utils import BadShapeError
 # sense), so we only test f64. Use f32 at own risk
 from .fixtures import (
     torch_devices,
-    f64_rtol,
     rng_seeds,
 )
 
@@ -23,6 +22,13 @@ from .fixtures import (
 # ##############################################################################
 # # FIXTURES
 # ##############################################################################
+@pytest.fixture
+def f64_rtol():
+    """ """
+    result = {torch.float64: 1e-10}
+    return result
+
+
 @pytest.fixture
 def square_shapes():
     """ """

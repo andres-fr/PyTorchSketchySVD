@@ -11,15 +11,30 @@ import torch
 from pytorch_ssvd.synthmat import SynthMat
 from .fixtures import (
     torch_devices,
-    f64_rtol,
-    f32_rtol,
     rng_seeds,
+    snr_lowrank_noise,
+    exp_decay,
+    poly_decay,
 )
 
 
 # ##############################################################################
 # # FIXTURES
 # ##############################################################################
+@pytest.fixture
+def f64_rtol():
+    """ """
+    result = {torch.float64: 1e-10}
+    return result
+
+
+@pytest.fixture
+def f32_rtol():
+    """ """
+    result = {torch.float32: 1e-3}
+    return result
+
+
 @pytest.fixture
 def dims_ranks_square():
     """ """
@@ -42,27 +57,6 @@ def heights_widths_ranks_fat():
         (100, 1_000, 10),
         (1_000, 10_000, 100),
     ]
-    return result
-
-
-@pytest.fixture
-def snr_lowrank_noise():
-    """ """
-    result = [1e-3, 1e-2, 1e-1, 1]
-    return result
-
-
-@pytest.fixture
-def exp_decay():
-    """ """
-    result = [0.5, 0.1, 0.01]
-    return result
-
-
-@pytest.fixture
-def poly_decay():
-    """ """
-    result = [2, 1, 0.5]
     return result
 
 
@@ -286,7 +280,7 @@ def test_seed_consistency(
                             shape=(h, h),  # L+N must be square
                             rank=r,
                             snr=snr,
-                            seed=seed,
+                            seed=seed + 1,
                             dtype=dtype,
                             device=device,
                         )
@@ -294,15 +288,15 @@ def test_seed_consistency(
                             shape=(h, h),  # L+N must be square
                             rank=r,
                             snr=snr,
-                            seed=seed + 1,
+                            seed=seed,
                             dtype=dtype,
                             device=device,
                         )
                         assert torch.allclose(
-                            mat1, mat2, rtol
+                            mat1, mat3, rtol
                         ), "Same seed different matrix?"
                         assert (
-                            mat1 != mat3
+                            mat1 != mat2
                         ).any(), f"Different seed same matrix?, {mat1, mat3}"
                     # exp decay
                     for dec in exp_decay:
@@ -320,7 +314,7 @@ def test_seed_consistency(
                             rank=r,
                             decay=dec,
                             symmetric=False,
-                            seed=seed,
+                            seed=seed + 1,
                             dtype=dtype,
                             device=device,
                         )
@@ -329,15 +323,15 @@ def test_seed_consistency(
                             rank=r,
                             decay=dec,
                             symmetric=False,
-                            seed=seed + 1,
+                            seed=seed,
                             dtype=dtype,
                             device=device,
                         )
                         assert torch.allclose(
-                            mat1, mat2, rtol
+                            mat1, mat3, rtol
                         ), "Same seed different matrix?"
                         assert (
-                            mat1 != mat3
+                            mat1 != mat2
                         ).any(), f"Different seed same matrix?, {mat1, mat3}"
                     # poly decay
                     for dec in poly_decay:
@@ -355,7 +349,7 @@ def test_seed_consistency(
                             rank=r,
                             decay=dec,
                             symmetric=False,
-                            seed=seed,
+                            seed=seed + 1,
                             dtype=dtype,
                             device=device,
                         )
@@ -364,13 +358,13 @@ def test_seed_consistency(
                             rank=r,
                             decay=dec,
                             symmetric=False,
-                            seed=seed + 1,
+                            seed=seed,
                             dtype=dtype,
                             device=device,
                         )
                         assert torch.allclose(
-                            mat1, mat2, rtol
+                            mat1, mat3, rtol
                         ), "Same seed different matrix?"
                         assert (
-                            mat1 != mat3
+                            mat1 != mat2
                         ).any(), f"Different seed same matrix?, {mat1, mat3}"

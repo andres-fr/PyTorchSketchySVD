@@ -17,21 +17,27 @@ from .utils import normal_noise
 # # HYPERPARAMETERS
 # ##############################################################################
 def a_priori_hyperparams(
-    matrix_shape,
-    memory_budget,
-    complex_data=False,
+    matrix_shape, memory_budget, complex_data=False, symmetric=False
 ):
     """
     :param int memory_budget: In number of matrix entries.
+    :param symmetric: If true, the matrix is assumed to be symmetric (and
+      square), so measurements only need to be done on one side. This means
+      that, for the same budget, we can do more measurements.
     :returns: The pair ``(k, s)``, where the first integer is the optimal
       number of outer sketch measurements, and the second one is the
-      corresponding number of core measurements.
+      corresponding number of core measurements. Optimality is defined as:
+      distribute the budget such that k is maximized, but ``s >= 2k``
+      (see 5.4.2. in paper).
     """
     m, n = matrix_shape
+    if symmetric:
+        assert m == n, "Symmetric matrix must be also square!"
+        n = 0  # if matrix is symmetric ,we only count m, not n
     alpha = 0 if complex_data else 1
     mn4a = m + n + 4 * alpha
     budget_root = 16 * (memory_budget - alpha**2)
-    #
+    # z
     outer_dim = math.floor(
         (1 / 8) * (math.sqrt(mn4a**2 + budget_root) - mn4a)
     )
@@ -79,9 +85,9 @@ def ssvd(
     core = torch.linalg.lstsq(left_core, core_measurements).solution
     core = torch.linalg.lstsq(right_core, core.T).solution
     # SVD of core matrix for truncated approximation
-    core_U, core_S, core_Vt = torch.linalg.svd(core)
+    core_U, core_S, core_Vt = torch.linalg.svd(core.T)
     #
-    return lo_Q.T, core_U, core_S, core_Vt, ro_Q.T
+    return ro_Q, core_U, core_S, core_Vt, lo_Q
 
 
 def truncate_core(core_U, core_S, core_Vt, k):

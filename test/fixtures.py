@@ -23,21 +23,28 @@ def torch_devices():
 
 
 @pytest.fixture
-def f64_rtol():
-    """ """
-    result = {torch.float64: 1e-10}
-    return result
-
-
-@pytest.fixture
-def f32_rtol():
-    """ """
-    result = {torch.float32: 1e-3}
-    return result
-
-
-@pytest.fixture
 def rng_seeds():
     """ """
     result = [0, 1, -1, 12345, 0b1110101001010101011]
+    return result
+
+
+@pytest.fixture
+def snr_lowrank_noise():
+    """ """
+    result = [1e-3, 1e-2, 1e-1, 1]
+    return result
+
+
+@pytest.fixture
+def exp_decay():
+    """ """
+    result = [0.5, 0.1, 0.01]
+    return result
+
+
+@pytest.fixture
+def poly_decay():
+    """ """
+    result = [2, 1, 0.5]
     return result
